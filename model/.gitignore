@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+sih_env_clean/
+.env
+.vscode/
+.idea/
+.history/
+logs/
+*.log
+*.sqlite3
+*.db
+dist/
+build/
+tmp/
+temp/
+.DS_Store
