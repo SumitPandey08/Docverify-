@@ -34,3 +34,15 @@ env/
 venv/
 *.sqlite3
 *.db
+
+# Images
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+*.tiff
+*.tif
+*.webp
+*.svg
+
