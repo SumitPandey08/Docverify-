@@ -3,6 +3,8 @@ import User from './pages/User'
 import Admin from './admin/Admin';
 import LandingPage from './pages/LandingPage'
 import Authentication from './pages/Authentication';
+import OrganizationLogin from './pages/OrganizationLogin';
+import OrganizationDashboard from './pages/OrganizationDashboard';
 
 function App() {
   return (
@@ -11,6 +13,8 @@ function App() {
         <main className="flex-grow">
           <Routes>
             <Route path="/" element={<LandingPage />} />
+            <Route path="/organization/login" element={<OrganizationLogin />} />
+            <Route path="/organizationDashboard" element={<OrganizationDashboard />} />
             <Route path="/*" element={<User />} />
             <Route path="/auth/*" element={<Authentication />} />
             <Route path="/admin/*" element={<Admin />} />

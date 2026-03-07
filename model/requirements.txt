@@ -1,7 +1,0 @@
-flask
-werkzeug
-python-dotenv
-google-generativeai
-pydantic
-pillow
-pytesseract
