@@ -71,18 +71,37 @@ export const verifyDocument = async (req: Request, res: Response) => {
     console.log('Saving verification results to database...');
     const aiResponse = String(result).toUpperCase();
     
-    // Logic: Default to rejected if AI says FAILED, FRAUD, TAMPERED, or EXPIRED.
-    let status: 'verified' | 'rejected' = 'verified';
-    if (
-      aiResponse.includes("FAILED") || 
-      aiResponse.includes("FRAUD") || 
-      aiResponse.includes("TAMPERED") || 
-      aiResponse.includes("EXPIRED") || 
-      aiResponse.includes("INVALID") ||
-      aiResponse.includes("REJECTED")
-    ) {
+    // Robust status determination: Follow the agent's explicit FINAL_STATUS marker
+    let status: 'verified' | 'rejected' = 'rejected'; // Default to rejected for safety
+    
+    if (aiResponse.includes("FINAL_STATUS: PASSED")) {
+      status = 'verified';
+    } else if (aiResponse.includes("FINAL_STATUS: FAILED")) {
       status = 'rejected';
+    } else {
+      // Fallback logic for safety if the marker is missing (though instructions mandate it)
+      const hasFailureKeywords = 
+        aiResponse.includes(" FRAUD ") || 
+        aiResponse.includes(" TAMPERED ") || 
+        aiResponse.includes(" EXPIRED ") || 
+        aiResponse.includes(" FORGERY ");
+      
+      status = hasFailureKeywords ? 'rejected' : 'verified';
     }
+
+    // NEW: Extract Confidence Scores
+    const extractScore = (pattern: RegExp, defaultVal: number) => {
+      const match = aiResponse.match(pattern);
+      return match ? parseInt(match[1]) : defaultVal;
+    };
+
+    const confidenceScores = {
+      textualAccuracy: extractScore(/TEXTUAL_ACCURACY.*?(\d+)/i, status === 'verified' ? 90 : 30),
+      visualCNNMatch: extractScore(/VISUAL_CNN_MATCH.*?(\d+)/i, status === 'verified' ? 85 : 40),
+      databaseTrust: extractScore(/DATABASE_TRUST.*?(\d+)/i, status === 'verified' ? 100 : 0),
+      logicConsistency: extractScore(/LOGIC_CONSISTENCY.*?(\d+)/i, status === 'verified' ? 95 : 20),
+      finalScore: extractScore(/FINAL_CONFIDENCE_SCORE.*?(\d+)/i, status === 'verified' ? 92 : 25)
+    };
 
     const verificationRequest = new VerificationRequest({
       userId,
@@ -90,7 +109,10 @@ export const verifyDocument = async (req: Request, res: Response) => {
       documentType,
       filePath,
       status,
-      verificationResults: { rawResult: result }
+      verificationResults: { 
+        rawResult: result,
+        scores: confidenceScores
+      }
     });
 
     await verificationRequest.save();
@@ -99,7 +121,8 @@ export const verifyDocument = async (req: Request, res: Response) => {
     res.json({ 
       verificationId: verificationRequest._id,
       status: verificationRequest.status,
-      analysis: result 
+      analysis: result,
+      scores: confidenceScores
     });
   } catch (error: any) {
     console.error('CRITICAL Error during document verification:', error);

@@ -95,16 +95,12 @@ export const addDocumentModel = async (req: Request, res: Response) => {
     // Parse fields if they are sent as a string (JSON)
     const rawFields = typeof fields === 'string' ? JSON.parse(fields) : fields;
 
-    // Map fields to include position object if x/y are top-level
+    // Map fields
     const mappedFields = rawFields.map((f: any) => ({
       name: f.name,
       type: f.type || 'text',
       isRequired: f.isRequired ?? true,
-      validationRegex: f.validationRegex,
-      position: {
-        x: f.x ?? 0,
-        y: f.y ?? 0
-      }
+      validationRegex: f.validationRegex
     }));
 
     org.documentModels.push({
@@ -138,8 +134,7 @@ export const updateDocumentModel = async (req: Request, res: Response) => {
     const mappedFields = rawFields.map((f: any) => ({
       name: f.name,
       type: f.type || 'text',
-      isRequired: f.isRequired ?? true,
-      position: { x: f.x ?? 0, y: f.y ?? 0 }
+      isRequired: f.isRequired ?? true
     }));
 
     org.documentModels[modelIndex].name = name;

@@ -9,8 +9,6 @@ interface IDocumentField {
   type: 'text' | 'number' | 'date' | 'email';
   isRequired: boolean;
   validationRegex?: string;
-  position?: { x: number; y: number }; // Optional coordinates for document generation
-  align?: 'left' | 'center' | 'right'; // Added alignment
 }
 
 interface IDocumentModel {
@@ -39,12 +37,7 @@ const OrganizationSchema: Schema = new Schema({
       name: { type: String, required: true },
       type: { type: String, enum: ['text', 'number', 'date', 'email'], default: 'text' },
       isRequired: { type: Boolean, default: true },
-      validationRegex: { type: String },
-      align: { type: String, enum: ['left', 'center', 'right'], default: 'left' },
-      position: {
-        x: { type: Number },
-        y: { type: Number }
-      }
+      validationRegex: { type: String }
     }],
     validityDays: { type: Number },
     modelImagePath: { type: String }

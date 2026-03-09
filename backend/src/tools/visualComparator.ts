@@ -15,7 +15,7 @@ export const visualComparatorTool = tool(
         return "One or both document paths are invalid.";
       }
 
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
 
       const userDoc = {
         inlineData: {

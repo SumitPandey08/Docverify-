@@ -43,7 +43,7 @@ const OrganizationDashboard = () => {
   const [newModel, setNewModel] = useState({
     name: "",
     validityDays: 365,
-    fields: [{ name: "FullName", type: "text", isRequired: true, x: 100, y: 100, align: "left" }],
+    fields: [{ name: "FullName", type: "text", isRequired: true }],
     modelImage: null
   });
 
@@ -117,10 +117,7 @@ const OrganizationDashboard = () => {
       fields: model.fields.map(f => ({
         name: f.name,
         type: f.type,
-        isRequired: f.isRequired,
-        x: f.position?.x || 0,
-        y: f.position?.y || 0,
-        align: f.align || "left"
+        isRequired: f.isRequired
       })),
       modelImage: null
     });
@@ -152,7 +149,7 @@ const OrganizationDashboard = () => {
         alert(editingModelId ? "Template updated!" : "Template created!");
         setShowModelModal(false);
         setEditingModelId(null);
-        setNewModel({ name: "", validityDays: 365, fields: [{ name: "FullName", type: "text", isRequired: true, x: 100, y: 100, align: "left" }], modelImage: null });
+        setNewModel({ name: "", validityDays: 365, fields: [{ name: "FullName", type: "text", isRequired: true }], modelImage: null });
         fetchData();
       }
     } catch (error) {
@@ -381,7 +378,7 @@ const OrganizationDashboard = () => {
                 <button 
                   onClick={() => {
                     setEditingModelId(null);
-                    setNewModel({ name: "", validityDays: 365, fields: [{ name: "FullName", type: "text", isRequired: true, x: 100, y: 100, align: "left" }], modelImage: null });
+                    setNewModel({ name: "", validityDays: 365, fields: [{ name: "FullName", type: "text", isRequired: true }], modelImage: null });
                     setShowModelModal(true);
                   }}
                   className="flex items-center gap-2 px-8 py-4 bg-orange-500 text-black font-black rounded-2xl hover:bg-orange-400 transition-all shadow-lg shadow-orange-500/20"
@@ -463,91 +460,41 @@ const OrganizationDashboard = () => {
                       Issuance Fields 
                       <button 
                         type="button"
-                        onClick={() => setNewModel({...newModel, fields: [...newModel.fields, {name: "", type: "text", isRequired: true, x: 0, y: 0, align: "left"}]})}
+                        onClick={() => setNewModel({...newModel, fields: [...newModel.fields, {name: "", type: "text", isRequired: true}]})}
                         className="text-orange-500 text-xs hover:underline bg-orange-500/5 px-2 py-1 rounded-lg"
                       >+ Add Field</button>
                     </label>
                     <p className="text-[10px] text-gray-500 leading-tight">
-                      X/Y are coordinates. Alignment controls how text grows from that point.
+                      Don't worry about layout! The system will automatically arrange and style these fields professionally.
                     </p>
                   </div>
                   
                   {newModel.fields.map((field, idx) => (
-                    <div key={idx} className="bg-black/40 border border-white/5 rounded-2xl p-4 space-y-4">
-                      <div className="flex gap-2">
-                        <input 
-                          type="text" 
-                          placeholder="Field Name (e.g. Student Name)"
-                          className="flex-grow bg-black border border-white/10 rounded-xl p-3 text-sm"
-                          value={field.name}
-                          onChange={(e) => {
-                            const f = [...newModel.fields];
-                            f[idx].name = e.target.value;
+                    <div key={idx} className="bg-black/40 border border-white/5 rounded-2xl p-4 flex gap-4 items-center">
+                      <input 
+                        type="text" 
+                        placeholder="Field Name (e.g. Student Name)"
+                        className="flex-grow bg-black border border-white/10 rounded-xl p-3 text-sm"
+                        value={field.name}
+                        onChange={(e) => {
+                          const f = [...newModel.fields];
+                          f[idx].name = e.target.value;
+                          setNewModel({...newModel, fields: f});
+                        }}
+                      />
+                      
+                      {newModel.fields.length > 1 && (
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            const f = newModel.fields.filter((_, i) => i !== idx);
                             setNewModel({...newModel, fields: f});
                           }}
-                        />
-                        <div className="flex bg-black border border-white/10 rounded-xl p-1">
-                          {[
-                            { id: 'left', icon: <AlignLeft className="w-4 h-4" /> },
-                            { id: 'center', icon: <AlignCenter className="w-4 h-4" /> },
-                            { id: 'right', icon: <AlignRight className="w-4 h-4" /> }
-                          ].map(opt => (
-                            <button
-                              key={opt.id}
-                              type="button"
-                              onClick={() => {
-                                const f = [...newModel.fields];
-                                f[idx].align = opt.id;
-                                setNewModel({...newModel, fields: f});
-                              }}
-                              className={`p-2 rounded-lg transition-all ${field.align === opt.id ? "bg-orange-500 text-black" : "text-gray-500 hover:text-white"}`}
-                            >
-                              {opt.icon}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      
-                      <div className="flex gap-4">
-                        <div className="flex-grow relative">
-                          <span className="absolute -top-2 left-2 px-1 bg-gray-950 text-[8px] text-gray-500 font-bold uppercase tracking-widest">X Coordinate</span>
-                          <input 
-                            type="number" 
-                            className="w-full bg-black border border-white/10 rounded-xl p-3 text-sm"
-                            value={field.x}
-                            onChange={(e) => {
-                              const f = [...newModel.fields];
-                              f[idx].x = parseInt(e.target.value) || 0;
-                              setNewModel({...newModel, fields: f});
-                            }}
-                          />
-                        </div>
-                        <div className="flex-grow relative">
-                          <span className="absolute -top-2 left-2 px-1 bg-gray-950 text-[8px] text-gray-500 font-bold uppercase tracking-widest">Y Coordinate</span>
-                          <input 
-                            type="number" 
-                            className="w-full bg-black border border-white/10 rounded-xl p-3 text-sm"
-                            value={field.y}
-                            onChange={(e) => {
-                              const f = [...newModel.fields];
-                              f[idx].y = parseInt(e.target.value) || 0;
-                              setNewModel({...newModel, fields: f});
-                            }}
-                          />
-                        </div>
-                        {newModel.fields.length > 1 && (
-                          <button 
-                            type="button"
-                            onClick={() => {
-                              const f = newModel.fields.filter((_, i) => i !== idx);
-                              setNewModel({...newModel, fields: f});
-                            }}
-                            className="p-3 text-gray-600 hover:text-red-500"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
+                          className="p-3 text-gray-600 hover:text-red-500 flex-shrink-0"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>

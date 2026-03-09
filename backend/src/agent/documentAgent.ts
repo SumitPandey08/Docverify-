@@ -67,7 +67,17 @@ export const runDocumentAgent = async (filePath: string, modelDocPath?: string, 
            - If a QR code was scanned and contains a JSON object with an "id", pass that ID as the "documentId" parameter to the tool.
            - Pass the extracted text (names, serials) as the "query" parameter.
         8. Compare the data found in the QR/Barcode with the printed document text. If they mismatch, flag as TAMPERED.
-        9. Provide a final verification summary. You MUST include a line at the very end that strictly says either "FINAL_STATUS: PASSED" or "FINAL_STATUS: FAILED" based on your findings.`,
+        
+        9. Provide a final verification summary. 
+        You MUST include a section at the end called "CONFIDENCE_BREAKDOWN" with scores (0-100) for:
+        - Textual_Accuracy (OCR & Data Match)
+        - Visual_CNN_Match (Layout & Forgery Check)
+        - Database_Trust (Official Records)
+        - Logic_Consistency (Expiry, Fields, QR Match)
+        
+        You MUST also provide a "FINAL_CONFIDENCE_SCORE" as a single percentage (0-100).
+        
+        Finally, you MUST include a line at the very end that strictly says either "FINAL_STATUS: PASSED" or "FINAL_STATUS: FAILED" based on your findings.`,
       },
     ],
   };

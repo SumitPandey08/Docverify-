@@ -68,15 +68,17 @@ const UploadDocument = () => {
 
       const result = await response.json();
       const isAuthentic = result.status === 'verified';
-      const route = isAuthentic ? "/authentic" : "/forged";
       
-      navigate(route, {
+      // Navigate to confidence result page with all data
+      navigate("/confidence", {
         state: {
           fileName: file.name,
           hasQrCode,
           verifiedAt: new Date().toISOString(),
           analysis: result.analysis,
-          verificationId: result.verificationId
+          verificationId: result.verificationId,
+          scores: result.scores,
+          status: result.status
         },
       });
     } catch (error) {
