@@ -48,7 +48,7 @@ export const runDocumentAgent = async (filePath: string, modelDocPath?: string, 
     messages: [
       {
         role: "user",
-        content: `You are a strict document verification agent. The current date is ${currentDate}.
+        content: `You are a sophisticated document verification agent. The current date is ${currentDate}.
         
         INPUT DATA:
         - Document Path: "${filePath}"
@@ -56,28 +56,31 @@ export const runDocumentAgent = async (filePath: string, modelDocPath?: string, 
         ${userDataJson ? `- Expected User Data: ${userDataJson}` : ""}
         ${requiredFields ? `- Required Document Fields: ${requiredFields}` : ""}
         
-        Follow these steps strictly:
-        1. Extract text using the OCR or PDF parser tool depending on the file type.
-        2. Analyze the extracted text for an expiration date. If found, use the expiry_check_tool. If expired, STOP immediately.
-        3. If a reference model is provided, use visual_comparator_tool to compare the user document against the organization's reference template image.
-        4. If required document fields are provided, ensure each field is present, matches the specified type, and passes any validation regex if provided.
-        5. If user data is provided, verify the extracted text matches the expected names, ID numbers, etc.
-        6. Check for any QR codes or Barcodes using the qr_scanner_tool. This is CRITICAL.
-        7. Use the database_check_tool to confirm if the document data exists in official records. 
-           - If a QR code was scanned and contains a JSON object with an "id", pass that ID as the "documentId" parameter to the tool.
-           - Pass the extracted text (names, serials) as the "query" parameter.
-        8. Compare the data found in the QR/Barcode with the printed document text. If they mismatch, flag as TAMPERED.
+        STRICT PROTOCOL:
+        1. Extract text using OCR or PDF parser.
+        2. Check for expiration. If expired, FAIL immediately.
+        3. If a reference model exists, use visual_comparator_tool.
+        4. Match User Data: Be intelligent. "Sumit Pandey" is a MATCH for "sumit". Do not fail for case sensitivity or missing middle/last names if the primary name matches.
+        5. Scan for QR/Barcodes. If found, compare with printed text.
+        6. Seal and Signature: Check if the document contains the official organization seal and authorized signature as per the reference model.
+        7. Database Check: This is the source of truth. 
+           - If you find a "DOCUMENT ID" or "ID" in the text, use it as the "documentId" parameter.
+           - If the database returns an "Exact ID Match", this is a VERY strong indicator of authenticity.
         
-        9. Provide a final verification summary. 
-        You MUST include a section at the end called "CONFIDENCE_BREAKDOWN" with scores (0-100) for:
-        - Textual_Accuracy (OCR & Data Match)
-        - Visual_CNN_Match (Layout & Forgery Check)
-        - Database_Trust (Official Records)
-        - Logic_Consistency (Expiry, Fields, QR Match)
+        DECISION LOGIC:
+        - If Database Check is an "Exact ID Match" and data aligns, the document is likely AUTHENTIC even if the QR scanner tool fails (technical glitches happen).
+        - Only FAIL if there is a CLEAR evidence of tampering, expiry, or the database says "No Record Found".
         
-        You MUST also provide a "FINAL_CONFIDENCE_SCORE" as a single percentage (0-100).
+        VERIFICATION SUMMARY:
+        You MUST include a section called "CONFIDENCE_BREAKDOWN" with scores (0-100):
+        - Textual_Accuracy (OCR & Intelligent Name Match)
+        - Visual_CNN_Match (Structural consistency)
+        - Database_Trust (Records verification)
+        - Logic_Consistency (Expiry, No Tampering signs)
         
-        Finally, you MUST include a line at the very end that strictly says either "FINAL_STATUS: PASSED" or "FINAL_STATUS: FAILED" based on your findings.`,
+        Provide a "FINAL_CONFIDENCE_SCORE" (0-100).
+        
+        Finally, include a line at the very end: "FINAL_STATUS: PASSED" or "FINAL_STATUS: FAILED".`,
       },
     ],
   };

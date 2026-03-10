@@ -24,6 +24,8 @@ export interface IOrganization extends Document {
   password?: string;
   apiKey: string;
   documentModels: IDocumentModel[];
+  sealUrl?: string;
+  signatureUrl?: string;
 }
 
 const OrganizationSchema: Schema = new Schema({
@@ -41,7 +43,9 @@ const OrganizationSchema: Schema = new Schema({
     }],
     validityDays: { type: Number },
     modelImagePath: { type: String }
-  }]
+  }],
+  sealUrl: { type: String },
+  signatureUrl: { type: String }
 });
 
 export const Organization = mongoose.model<IOrganization>('Organization', OrganizationSchema);

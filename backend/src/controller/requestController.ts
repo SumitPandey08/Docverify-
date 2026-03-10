@@ -118,7 +118,9 @@ export const approveAndCreateDocument = async (req: Request, res: Response) => {
       qrData,
       { 
         issuerName: organization.name, 
-        documentTitle: docModel.name 
+        documentTitle: docModel.name,
+        sealPath: organization.sealUrl,
+        signaturePath: organization.signatureUrl
       }
     );
 

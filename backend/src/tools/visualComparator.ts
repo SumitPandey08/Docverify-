@@ -1,64 +1,71 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import fs from "fs";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import dotenv from "dotenv";
-
-dotenv.config();
-
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
+import sharp from "sharp";
+import pixelmatch from "pixelmatch";
+import { PNG } from "pngjs";
 
 export const visualComparatorTool = tool(
   async ({ userDocPath, modelDocPath }) => {
     try {
+      console.log(`--- Local Pixel-Matching Visual Comparator ---`);
       if (!fs.existsSync(userDocPath) || !fs.existsSync(modelDocPath)) {
         return "One or both document paths are invalid.";
       }
 
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
+      // 1. Normalize images using sharp (Resize to same dimensions, same colorspace)
+      const width = 1000;
+      const height = 1000;
 
-      const userDoc = {
-        inlineData: {
-          data: Buffer.from(fs.readFileSync(userDocPath)).toString("base64"),
-          mimeType: "image/jpeg", // Should ideally be dynamic
-        },
+      const img1Buffer = await sharp(userDocPath)
+        .resize(width, height, { fit: 'fill' })
+        .ensureAlpha()
+        .png()
+        .toBuffer();
+
+      const img2Buffer = await sharp(modelDocPath)
+        .resize(width, height, { fit: 'fill' })
+        .ensureAlpha()
+        .png()
+        .toBuffer();
+
+      // 2. Decode PNGs
+      const img1 = PNG.sync.read(img1Buffer);
+      const img2 = PNG.sync.read(img2Buffer);
+      const diff = new PNG({ width, height });
+
+      // 3. Compare using pixelmatch
+      // threshold: 0.1 (low tolerance for mismatch)
+      const numDiffPixels = pixelmatch(
+        img1.data,
+        img2.data,
+        diff.data,
+        width,
+        height,
+        { threshold: 0.1 }
+      );
+
+      const totalPixels = width * height;
+      const matchScore = (totalPixels - numDiffPixels) / totalPixels;
+      const isLayoutValid = matchScore > 0.75; // Threshold for validity
+
+      const result = {
+        visualMatchScore: matchScore,
+        anomaliesDetected: numDiffPixels > totalPixels * 0.25 ? ["Significant structural deviation detected."] : [],
+        isLayoutValid: isLayoutValid,
+        reasoning: `Matched ${((matchScore) * 100).toFixed(2)}% of layout pixels against the organization template. ${isLayoutValid ? "Structure is consistent." : "Structure deviates too much from template."}`
       };
 
-      const modelDoc = {
-        inlineData: {
-          data: Buffer.from(fs.readFileSync(modelDocPath)).toString("base64"),
-          mimeType: "image/jpeg",
-        },
-      };
-
-      const prompt = `
-        Compare these two images:
-        1. User Provided Document
-        2. Organization Reference Template
-        
-        Act as a CNN-based visual verification system. 
-        - Check if the layout, structure, and header positions match the template.
-        - Look for any visual anomalies or signs of forgery.
-        - Confirm if the user document follows the visual 'model' of the organization.
-        
-        Provide a JSON response with:
-        {
-          "visualMatchScore": 0-1,
-          "anomaliesDetected": string[],
-          "isLayoutValid": boolean,
-          "reasoning": string
-        }
-      `;
-
-      const result = await model.generateContent([prompt, userDoc, modelDoc]);
-      return result.response.text();
+      console.log(`Visual Match Result: ${result.reasoning}`);
+      return JSON.stringify(result);
     } catch (error: any) {
+      console.error(`Visual Comparison Error: ${error.message}`);
       return `Visual Comparison Error: ${error.message}`;
     }
   },
   {
     name: "visual_comparator_tool",
-    description: "Compare the user's document visually against a reference model template image.",
+    description: "Compare the user's document visually against a reference model template image using pixel-level structural analysis.",
     schema: z.object({
       userDocPath: z.string().describe("Path to the document provided by the user."),
       modelDocPath: z.string().describe("Path to the organization's reference model image."),

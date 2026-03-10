@@ -186,6 +186,7 @@ const OrganizationDashboard = () => {
               { id: "overview", label: "Overview", icon: <Layout className="w-4 h-4" /> },
               { id: "applications", label: "Applications", icon: <ClipboardList className="w-4 h-4" /> },
               { id: "templates", label: "Templates", icon: <FileCheck className="w-4 h-4" /> },
+              { id: "assets", label: "Assets", icon: <Settings className="w-4 h-4" /> },
             ].map(tab => (
               <button
                 key={tab.id}
@@ -413,6 +414,111 @@ const OrganizationDashboard = () => {
                     </div>
                   </div>
                 ))}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Assets Tab */}
+          {activeTab === "assets" && (
+            <motion.div
+              key="assets"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-12"
+            >
+              <div className="bg-gray-950 p-8 rounded-[2.5rem] border border-white/5">
+                <h2 className="text-2xl font-black mb-2">Organization Assets</h2>
+                <p className="text-gray-500 text-sm">Upload your official seal and authorized signature. These will be automatically placed on every document you issue.</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Seal Upload */}
+                <div className="bg-gray-950 p-8 rounded-[2.5rem] border border-white/5 space-y-6">
+                  <div className="flex items-center gap-4 mb-2">
+                    <div className="p-3 bg-orange-500/10 rounded-xl">
+                      <FileCheck className="text-orange-500 w-6 h-6" />
+                    </div>
+                    <h3 className="text-xl font-bold">Official Global Seal</h3>
+                  </div>
+                  
+                  <div className="aspect-square w-full bg-black rounded-3xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center p-8 text-center hover:border-orange-500 transition-all relative overflow-hidden group">
+                    {data.organization?.sealUrl ? (
+                      <img 
+                        src={`http://localhost:5000/${data.organization.sealUrl}`} 
+                        alt="Official Seal" 
+                        className="w-full h-full object-contain opacity-50 group-hover:opacity-20 transition-opacity"
+                      />
+                    ) : (
+                      <Upload className="w-12 h-12 text-gray-700 mb-4" />
+                    )}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-orange-500/0 group-hover:bg-orange-500/5 transition-all">
+                      <input 
+                        type="file" 
+                        className="absolute inset-0 opacity-0 cursor-pointer" 
+                        onChange={async (e) => {
+                          const file = e.target.files[0];
+                          if (!file) return;
+                          const formData = new FormData();
+                          formData.append('seal', file);
+                          const res = await fetch(`http://localhost:5000/api/organizations/${orgId}/assets`, {
+                            method: 'POST',
+                            body: formData
+                          });
+                          if (res.ok) {
+                            alert("Seal updated successfully!");
+                            fetchData();
+                          }
+                        }}
+                      />
+                      <span className="text-orange-500 font-bold text-sm">Update Seal Image</span>
+                      <p className="text-[10px] text-gray-500 mt-1">Recommended: Transparent PNG (500x500)</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Signature Upload */}
+                <div className="bg-gray-950 p-8 rounded-[2.5rem] border border-white/5 space-y-6">
+                  <div className="flex items-center gap-4 mb-2">
+                    <div className="p-3 bg-orange-500/10 rounded-xl">
+                      <PlusCircle className="text-orange-500 w-6 h-6" />
+                    </div>
+                    <h3 className="text-xl font-bold">Authorized Signature</h3>
+                  </div>
+                  
+                  <div className="aspect-video w-full bg-black rounded-3xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center p-8 text-center hover:border-orange-500 transition-all relative overflow-hidden group">
+                    {data.organization?.signatureUrl ? (
+                      <img 
+                        src={`http://localhost:5000/${data.organization.signatureUrl}`} 
+                        alt="Authorized Signature" 
+                        className="w-full h-full object-contain opacity-50 group-hover:opacity-20 transition-opacity"
+                      />
+                    ) : (
+                      <Upload className="w-12 h-12 text-gray-700 mb-4" />
+                    )}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-orange-500/0 group-hover:bg-orange-500/5 transition-all">
+                      <input 
+                        type="file" 
+                        className="absolute inset-0 opacity-0 cursor-pointer" 
+                        onChange={async (e) => {
+                          const file = e.target.files[0];
+                          if (!file) return;
+                          const formData = new FormData();
+                          formData.append('signature', file);
+                          const res = await fetch(`http://localhost:5000/api/organizations/${orgId}/assets`, {
+                            method: 'POST',
+                            body: formData
+                          });
+                          if (res.ok) {
+                            alert("Signature updated successfully!");
+                            fetchData();
+                          }
+                        }}
+                      />
+                      <span className="text-orange-500 font-bold text-sm">Update Signature Image</span>
+                      <p className="text-[10px] text-gray-500 mt-1">Recommended: Transparent PNG (800x300)</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </motion.div>
           )}

@@ -167,6 +167,29 @@ export const deleteDocumentModel = async (req: Request, res: Response) => {
   }
 };
 
+export const updateOrganizationAssets = async (req: Request, res: Response) => {
+  try {
+    const { orgId } = req.params;
+    const org = await Organization.findById(orgId);
+    if (!org) return res.status(404).json({ error: "Organization not found" });
+
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+    
+    if (files['seal']) {
+      org.sealUrl = files['seal'][0].path;
+    }
+    if (files['signature']) {
+      org.signatureUrl = files['signature'][0].path;
+    }
+
+    await org.save();
+    res.json(org);
+  } catch (error: any) {
+    console.error('Error in updateOrganizationAssets:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 
 export const createUser = async (req: Request, res: Response) => {
   try {

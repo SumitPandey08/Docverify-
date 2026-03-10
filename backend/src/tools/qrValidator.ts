@@ -30,7 +30,7 @@ const scanBuffer = async (buffer: Buffer, width: number, height: number) => {
       const r = buffer[i * 4];
       const g = buffer[i * 4 + 1];
       const b = buffer[i * 4 + 2];
-      // ARGB format: (A << 24) | (R << 16) | (G << 8) | B
+      // ARGB format: (A << 24) | (R << 16) | (G << 8) | b;
       pixelArray[i] = (255 << 24) | (r << 16) | (g << 8) | b;
     }
 
@@ -84,11 +84,12 @@ export const qrScannerTool = tool(
       // Define passes: [name, processor]
       // We use a variety of transforms to catch QR codes in any condition
       const passes: [string, (s: sharp.Sharp) => sharp.Sharp][] = [
+        ["Original-Native", (s) => s], // No resizing, use as-is
         ["Original-Resized", (s) => s.resize(2000, 2000, { fit: 'inside', withoutEnlargement: true })],
         ["Grayscale-HighContrast", (s) => s.resize(2000, 2000, { fit: 'inside' }).grayscale().linear(1.5, -0.2)], 
         ["Inverted", (s) => s.resize(2000, 2000, { fit: 'inside' }).grayscale().negate()],
         ["Sharpened", (s) => s.resize(2000, 2000, { fit: 'inside' }).sharpen()],
-        ["Small-Scan", (s) => s.resize(1000, 1000, { fit: 'inside' }).grayscale()], // Smaller size sometimes helps with noise
+        ["Small-Scan", (s) => s.resize(1000, 1000, { fit: 'inside' }).grayscale()], 
         ["Ultra-HighRes", (s) => s.resize(4000, 4000, { fit: 'inside' }).grayscale().sharpen()],
       ];
 
@@ -109,7 +110,7 @@ Data: ${result.text}`;
         }
       }
 
-      console.log("No QR/Barcode detected after 6 aggressive passes.");
+      console.log("No QR/Barcode detected after 7 aggressive passes.");
       return "No QR code or Barcode found. If the document has one, try providing a higher resolution image with better lighting.";
     } catch (error: any) {
       console.error(`Scanning Error: ${error.message}`);

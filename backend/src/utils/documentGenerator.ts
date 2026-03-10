@@ -22,7 +22,7 @@ export const generateDocumentImage = async (
   fields: IFieldToDraw[],
   outputPath: string,
   qrData: string,
-  options: { issuerName?: string; documentTitle?: string } = {}
+  options: { issuerName?: string; documentTitle?: string; sealPath?: string; signaturePath?: string } = {}
 ) => {
   console.log(`--- Generating Premium Auto-Aligned Document ---`);
   
@@ -56,7 +56,7 @@ export const generateDocumentImage = async (
   const minDim = Math.min(width, height);
   const scale = minDim / 400; // Relative to a small ID card size
   
-  const qrSize = Math.floor(minDim * 0.22); // Slightly smaller QR for better balance
+  const qrSize = Math.floor(minDim * 0.20); // Slightly smaller QR
   const marginX = Math.floor(width * 0.08);
   const marginY = Math.floor(height * 0.08);
 
@@ -89,6 +89,7 @@ export const generateDocumentImage = async (
       .divider { stroke: #CCCCCC; stroke-width: 2; stroke-dasharray: 4, 4; }
       .border-frame { stroke: #1A2980; stroke-width: 4; fill: none; opacity: 0.1; }
       .inner-frame { stroke: #26D0CE; stroke-width: 1; fill: none; opacity: 0.3; }
+      .sign-label { font-family: 'Arial', sans-serif; font-size: ${szMeta}px; fill: #555555; font-weight: bold; }
     </style>`;
 
   // Draw sophisticated frames
@@ -125,13 +126,13 @@ export const generateDocumentImage = async (
   const userFields = fields.filter(f => !metaLabels.includes(f.label || ''));
   const metaFields = fields.filter(f => metaLabels.includes(f.label || ''));
 
-  // Draw User Fields in a Two-Column Grid if there are enough fields
+  // Draw User Fields
   const maxContentWidth = width - (marginX * 2);
   const columnWidth = Math.floor(maxContentWidth / 2) - marginX;
   const col1X = marginX;
-  const col2X = marginX + columnWidth + (marginX * 0.5); // Gap between columns
+  const col2X = marginX + columnWidth + (marginX * 0.5);
   
-  const useGrid = userFields.length > 3 && width > height * 0.8; // Use grid if >3 fields and orientation allows
+  const useGrid = userFields.length > 3 && width > height * 0.8;
   const rowHeight = Math.floor((szLabel + szValue) * 1.8);
 
   for (let i = 0; i < userFields.length; i++) {
@@ -139,28 +140,22 @@ export const generateDocumentImage = async (
     const isCol2 = useGrid && i % 2 !== 0;
     const xPos = isCol2 ? col2X : col1X;
     
-    // Draw label
     svgContent += `<text x="${xPos}" y="${currentY}" dominant-baseline="hanging" class="label">${(field.label || '').toUpperCase()}</text>`;
-    // Draw value
     svgContent += `<text x="${xPos}" y="${currentY + szLabel + 4}" dominant-baseline="hanging" class="value">${field.text}</text>`;
     
-    // Only increment Y if we are not using grid OR if it's the right column OR it's the last element and in left col
     if (!useGrid || isCol2 || i === userFields.length - 1) {
       currentY += rowHeight;
-      // Add subtle divider between rows
       svgContent += `<line x1="${marginX}" y1="${currentY - (rowHeight * 0.1)}" x2="${width - marginX}" y2="${currentY - (rowHeight * 0.1)}" class="divider" />`;
     }
   }
 
   currentY += Math.floor(rowHeight * 0.5);
 
-  // Footer / Metadata Section
-  // Ensure footer doesn't overlap the QR code by pushing it above the QR section
-  let footerY = height - marginY - qrSize - (metaFields.length * szMeta * 1.8);
+  // Footer section for metadata
+  let footerY = height - marginY - (metaFields.length * szMeta * 1.8) - (options.sealPath || options.signaturePath ? szMeta * 6 : 0);
   
-  // Safety check to prevent overlap with user content
   if (footerY < currentY + szTitle) {
-      footerY = currentY + szTitle; // Push footer down if it overlaps (though it might overlap QR in extreme cases)
+      footerY = currentY + szTitle;
   }
 
   // Draw Meta Fields
@@ -169,9 +164,17 @@ export const generateDocumentImage = async (
     footerY += Math.floor(szMeta * 1.8);
   }
 
+  // Draw labels for Seal and Sign
+  if (options.sealPath) {
+    svgContent += `<text x="${marginX}" y="${height - marginY - szMeta}" dominant-baseline="auto" class="sign-label">OFFICIAL SEAL</text>`;
+  }
+  if (options.signaturePath) {
+    svgContent += `<text x="${width - marginX}" y="${height - marginY - szMeta}" text-anchor="end" dominant-baseline="auto" class="sign-label">AUTHORIZED SIGNATURE</text>`;
+  }
+
   svgContent += '</svg>';
 
-  // 4. Rasterize Overlays with HIGH density for extreme sharpness
+  // 4. Rasterize Overlays
   const textOverlay = await sharp(Buffer.from(svgContent), { density: 300 })
     .resize(width, height)
     .png()
@@ -179,27 +182,49 @@ export const generateDocumentImage = async (
 
   // Draw QR Code
   const qrRawBuffer = await QRCode.toBuffer(qrData, { 
-    margin: 2, // Slight margin to give it a clean border 
+    margin: 2, 
     width: qrSize, 
     errorCorrectionLevel: 'H',
-    color: {
-      dark: '#111111',  // Near black
-      light: '#FFFFFF' // White background
-    }
+    color: { dark: '#000000', light: '#FFFFFF' }
   });
   
   const qrOverlay = await sharp(qrRawBuffer).toBuffer();
 
-  // 5. Final Safe Composite
-  // Place QR code in the bottom right corner
-  const qrTop = Math.floor(height - qrSize - marginY);
-  const qrLeft = Math.floor(width - qrSize - marginX);
+  // Assets to Composite
+  const composites: any[] = [
+    { input: textOverlay, top: 0, left: 0 }
+  ];
+
+  // Position QR Code at Top Right
+  const qrTop = marginY + Math.floor(headerHeight / 2) - Math.floor(qrSize / 2);
+  const qrLeft = width - marginX - qrSize;
+  composites.push({ input: qrOverlay, top: Math.max(0, qrTop), left: Math.max(0, qrLeft) });
+
+  // Add Seal (Bottom Left area)
+  if (options.sealPath && fs.existsSync(options.sealPath)) {
+    const sealSize = Math.floor(minDim * 0.18);
+    const sealBuffer = await sharp(options.sealPath).resize(sealSize, sealSize).toBuffer();
+    composites.push({ 
+      input: sealBuffer, 
+      top: height - marginY - sealSize - Math.floor(szMeta * 1.5), 
+      left: marginX 
+    });
+  }
+
+  // Add Signature (Bottom Right area)
+  if (options.signaturePath && fs.existsSync(options.signaturePath)) {
+    const signWidth = Math.floor(minDim * 0.25);
+    const signHeight = Math.floor(minDim * 0.12);
+    const signBuffer = await sharp(options.signaturePath).resize(signWidth, signHeight, { fit: 'inside' }).toBuffer();
+    composites.push({ 
+      input: signBuffer, 
+      top: height - marginY - signHeight - Math.floor(szMeta * 1.5), 
+      left: width - marginX - signWidth 
+    });
+  }
 
   await sharp(baseImageBuffer)
-    .composite([
-      { input: textOverlay, top: 0, left: 0 },
-      { input: qrOverlay, top: Math.max(0, qrTop), left: Math.max(0, qrLeft) }
-    ])
+    .composite(composites)
     .png()
     .toFile(outputPath);
 
